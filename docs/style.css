@@ -1,0 +1,53 @@
+:root{--bg:#f5f7fa;--surface:#fff;--ink:#16202e;--muted:#5b6778;--line:#d9dfe7;--ml:#0b6e69;--base:#8a94a3;--real:#16202e;--warn:#b45309;
+--serif:"Newsreader",Georgia,serif;--sans:"Public Sans",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#10151c;--surface:#171e28;--ink:#e8edf3;--muted:#9aa6b6;--line:#2a3442;--ml:#4fd1c5;--base:#8591a1;--real:#e8edf3;--warn:#f0b35a}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 var(--sans)}
+.wrap{max-width:900px;margin:0 auto;padding:0 20px}
+h1,h2,h3{font-family:var(--serif);line-height:1.2}
+h1{font-size:clamp(2rem,5vw,3rem);margin:0 0 .5em;max-width:18ch}
+h2{font-size:1.8rem;margin:0 0 .6em}
+h3{font-size:1.2rem;margin:1.6em 0 .4em}
+section{padding:42px 0;border-top:1px solid var(--line)}
+p,li,dd{max-width:68ch}
+.hero{padding:56px 0 36px}
+.lead{font-size:1.15rem;max-width:60ch;color:var(--muted)}
+.hero-card{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;margin-top:28px;padding:20px 24px;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.big{display:block;font:700 2.6rem/1 var(--serif);color:var(--ml)}
+.small{font-size:.9rem;color:var(--muted)}
+.btn{background:var(--ml);color:var(--bg);padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:600}
+.btn:hover{filter:brightness(1.1)}
+.toc{display:flex;flex-wrap:wrap;gap:6px 18px;padding-bottom:18px;font-size:.92rem}
+.toc a{color:var(--muted);text-decoration:none}.toc a:hover{color:var(--ml)}
+a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--ml);outline-offset:2px}
+.banner{background:var(--warn);color:#fff;padding:10px 20px;text-align:center;font-weight:600}
+.defs dt{font-weight:600;margin-top:.8em}.defs dd{margin:0;color:var(--muted)}
+.tbl{width:100%;border-collapse:collapse;margin:14px 0;font-size:.93rem;background:var(--surface)}
+.tbl th,.tbl td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left}
+.tbl th{font-weight:600;background:var(--bg)}
+.tbl td.num,.tbl th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tbl tr.best td{background:color-mix(in srgb,var(--ml) 12%,var(--surface));font-weight:600}
+.scroll{overflow-x:auto}
+.note{font-size:.88rem;color:var(--muted)}
+.chart-box{position:relative;height:340px;margin:14px 0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px}
+.chart-box.short{height:260px}
+select,input[type=number]{font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink)}
+label{display:block;font-weight:600;margin:12px 0 4px}
+.presets{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 16px}
+.presets button{font:inherit;padding:6px 14px;border:1px solid var(--ml);background:transparent;color:var(--ml);border-radius:6px;cursor:pointer}
+.presets button:hover{background:var(--ml);color:var(--bg)}
+.port-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+@media(max-width:720px){.port-grid{grid-template-columns:1fr}}
+.slider-row{display:grid;grid-template-columns:52px 1fr 52px;gap:8px;align-items:center;margin:4px 0}
+.slider-row input{width:100%;accent-color:var(--ml)}
+.slider-row output{text-align:right;font-variant-numeric:tabular-nums;font-size:.9rem}
+.out-card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.out-card .row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid var(--line)}
+.out-card .row strong{font-variant-numeric:tabular-nums}
+.bar-row{display:grid;grid-template-columns:96px 1fr 56px;gap:8px;align-items:center;font-size:.9rem;margin:3px 0}
+.bar{height:12px;background:var(--ml);border-radius:2px;min-width:1px}
+.bar.neg{background:var(--warn)}
+code{background:var(--surface);border:1px solid var(--line);padding:1px 5px;border-radius:4px;font-size:.9em}
+footer{padding:30px 0}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}

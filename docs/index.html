@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portfolio Risk Analyzer: forecasting stock volatility with machine learning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="demo-banner" class="banner" hidden></div>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>How risky will your portfolio be next month?</h1>
+    <p class="lead">We train machine-learning models to forecast each stock's volatility for the next 21 trading days, then combine the forecasts into portfolio risk. Below you can inspect the forecasts and build your own portfolio.</p>
+    <div class="hero-card" aria-live="polite">
+      <div><span class="big" id="hero-vol">–</span><span class="small">forecast annualised volatility of the portfolio you build below</span></div>
+      <a class="btn" href="#portfolio">Build a portfolio</a>
+    </div>
+  </div>
+</header>
+
+<nav class="toc wrap" aria-label="Sections">
+  <a href="#problem">Problem</a><a href="#data">Data</a><a href="#method">Method</a><a href="#results">Results</a>
+  <a href="#stock">Explore a stock</a><a href="#portfolio">Portfolio</a><a href="#errors">Errors</a><a href="#limits">Limitations</a><a href="#reproduce">Reproduce</a>
+</nav>
+
+<main class="wrap">
+
+<section id="problem">
+  <h2>The question</h2>
+  <p>For one stock on day <em>t</em>, using only information available at the close of day <em>t</em>, can we predict how much its price will move over the <strong>next 21 trading days</strong>?</p>
+  <dl class="defs">
+    <dt>Target</dt><dd>The log of the realised volatility: the standard deviation of daily log-returns over days <em>t+1</em> to <em>t+21</em>. We use the log because volatility is positive and right-skewed.</dd>
+    <dt>Unit of observation</dt><dd>One row = one stock on one day. Stocks are pooled into a single table.</dd>
+    <dt>Type of problem</dt><dd>Supervised regression on time-ordered data.</dd>
+    <dt>Limits of the claim</dt><dd>We forecast <em>how large</em> price moves will be, not their direction. This is not a trading signal or financial advice.</dd>
+  </dl>
+</section>
+
+<section id="data">
+  <h2>Data</h2>
+  <p id="data-text"></p>
+  <table class="tbl" id="quality-table"><thead><tr><th>Quality check</th><th>Result</th></tr></thead><tbody></tbody></table>
+  <p class="note">Access: public Yahoo Finance data, downloaded by <code>src/data.py</code>. No account, API key or private data is used.</p>
+</section>
+
+<section id="method">
+  <h2>Method</h2>
+  <h3>Features (all use only the past)</h3>
+  <p>Past volatility over 5, 21 and 63 days; returns over 5 and 21 days; distance below the 63-day high; recent volume relative to normal; yesterday's absolute return; and the market's (SPY) volatility and return. Volatility and volume features are logged.</p>
+  <h3>Avoiding leakage</h3>
+  <ul>
+    <li>The data are split in time: train up to <span class="v-train"></span>, validation (tuning) during 2022, test afterwards, used once.</li>
+    <li>A 21-day gap is dropped at the end of train and validation, because the target looks 21 days ahead and windows would otherwise overlap.</li>
+    <li>The standard scaler sits inside a pipeline, so it learns its mean and spread from training rows only.</li>
+    <li>Automated tests in <code>tests/</code> check that features ignore the future.</li>
+  </ul>
+  <h3>Baselines and models</h3>
+  <table class="tbl">
+    <thead><tr><th>Model</th><th>Idea</th></tr></thead>
+    <tbody>
+      <tr><td>Historical mean</td><td>Always predict the average volatility seen in training. The weakest sensible baseline.</td></tr>
+      <tr><td>Persistence</td><td>Next month's volatility equals the last 21 days'. Hard to beat, because volatility clusters.</td></tr>
+      <tr><td>HAR (OLS)</td><td>Linear regression on short, medium and long past volatility only. A standard finance benchmark.</td></tr>
+      <tr><td>Ridge</td><td>Linear regression on all features with an L2 penalty to control overfitting.</td></tr>
+      <tr><td>Random Forest</td><td>Many decision trees, averaged. Can capture non-linear effects and interactions.</td></tr>
+    </tbody>
+  </table>
+  <p>Hyper-parameters (Ridge alpha, forest depth and leaf size) are chosen on the validation year. The chosen models are then refitted on train and validation together and evaluated on the test period one time.</p>
+</section>
+
+<section id="results">
+  <h2>Results on the test period</h2>
+  <p id="results-text"></p>
+  <div class="scroll"><table class="tbl" id="metrics-table"><thead><tr><th>Model</th><th>Validation RMSE</th><th>Test RMSE</th><th>Test MAE</th><th>Test R²</th><th>Improvement over persistence</th></tr></thead><tbody></tbody></table></div>
+  <p class="note">Errors are on the log-volatility scale; lower is better. Improvement over persistence is 1 − MSE(model) / MSE(persistence); above 0 means better. Accuracy alone is not meaningful here, so every number is read against the baselines.</p>
+  <div class="chart-box short"><canvas id="metrics-chart" aria-label="Bar chart of test RMSE per model" role="img"></canvas></div>
+  <h3>What drives the forecasts?</h3>
+  <p>Permutation importance for the random forest: how much the test error rises when one feature is shuffled.</p>
+  <div id="importance"></div>
+</section>
+
+<section id="stock">
+  <h2>Explore a stock</h2>
+  <label for="ticker">Stock</label>
+  <select id="ticker"></select>
+  <div class="chart-box"><canvas id="stock-chart" aria-label="Line chart of actual versus forecast volatility" role="img"></canvas></div>
+  <p class="note">Each point compares the forecast made on that day with what volatility actually turned out to be over the following 21 trading days. The lines are annualised volatility in %.</p>
+</section>
+
+<section id="portfolio">
+  <h2>Build a portfolio</h2>
+  <p>Set weights; they are rescaled to add up to 100%. Portfolio risk is √(wᵀΣw), where each stock's volatility comes from the forecast and correlations come from the last 126 trading days.</p>
+  <div class="presets" id="presets"></div>
+  <div class="port-grid">
+    <div id="sliders"></div>
+    <div>
+      <div class="out-card">
+        <div class="row"><span>Forecast volatility (ML model)</span><strong id="p-ml">–</strong></div>
+        <div class="row"><span>Naive volatility (last 21 days)</span><strong id="p-pers">–</strong></div>
+        <label for="pv">Portfolio value</label>
+        <input id="pv" type="number" min="0" step="1000" value="100000">
+        <div class="row"><span>One-day 95% value at risk</span><strong id="p-var">–</strong></div>
+        <p class="note" id="asof"></p>
+      </div>
+      <h3>Where the risk comes from</h3>
+      <div id="contrib"></div>
+    </div>
+  </div>
+  <h3>Does it work at portfolio level?</h3>
+  <select id="bt-select" aria-label="Portfolio"></select>
+  <div class="chart-box"><canvas id="bt-chart" aria-label="Realised versus forecast portfolio volatility" role="img"></canvas></div>
+  <table class="tbl" id="bt-table"><thead><tr><th>Forecast</th><th>Error (log scale, RMSE)</th><th>Days loss exceeded 95% VaR (ideal ≈ 5%)</th></tr></thead><tbody></tbody></table>
+</section>
+
+<section id="errors">
+  <h2>Where the model is wrong</h2>
+  <h3>By market conditions (test period)</h3>
+  <table class="tbl" id="regime-table"><thead><tr><th>Market</th><th>Rows</th><th>Model RMSE</th><th>Persistence RMSE</th></tr></thead><tbody></tbody></table>
+  <h3>By stock</h3>
+  <table class="tbl" id="ticker-table"><thead><tr><th>Stock</th><th>Model RMSE</th><th>Persistence RMSE</th></tr></thead><tbody></tbody></table>
+  <h3>Largest single misses</h3>
+  <div class="scroll"><table class="tbl" id="worst-table"><thead><tr><th>Date</th><th>Stock</th><th>Actual</th><th>Model</th><th>Persistence</th></tr></thead><tbody></tbody></table></div>
+  <p class="note">Volatilities in annualised %. Big misses are usually sudden events (earnings surprises, shocks) that no past-only feature can anticipate.</p>
+</section>
+
+<section id="limits">
+  <h2>Limitations</h2>
+  <ul>
+    <li>Ten large US stocks, mostly one market regime. Results may not carry over to small stocks, other countries or crises not seen in training.</li>
+    <li>Models are trained on past data and assume the relationship between features and future volatility stays similar.</li>
+    <li>Turning log-forecasts back into volatility with <code>exp()</code> slightly under-estimates the average (Jensen's inequality).</li>
+    <li>Correlations are taken from the recent past and are not forecast; they tend to rise in crashes, so portfolio risk can be underestimated when it matters most.</li>
+    <li>Value at risk assumes normally distributed returns, which understates tail losses.</li>
+    <li>Overlapping 21-day targets mean neighbouring rows are not independent, so small differences between models should not be over-read.</li>
+  </ul>
+</section>
+
+<section id="reproduce">
+  <h2>Reproduce and AI-use disclosure</h2>
+  <p>Source code, setup steps and data-access instructions are in the repository README. Run <code>python run_pipeline.py</code> to download the data, train, evaluate and regenerate this page's <code>results.json</code>.</p>
+  <p>AI tools helped write parts of the code and text; the details are in <code>AI_USE_DISCLOSURE.md</code>. External sources are listed in <code>REFERENCES.md</code>. The repository holds no private data, credentials or API keys.</p>
+  <p class="note" id="generated"></p>
+</section>
+
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
